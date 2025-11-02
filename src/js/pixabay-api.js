@@ -15,7 +15,7 @@ const BASE_CONFIG = {
 
 export async function getGalleryData(queryValue, page = 1) {
   try {
-    fetchLoader();
+    fetchLoader(); // показуємо лоадер
 
     const params = {
       ...BASE_CONFIG,
@@ -32,6 +32,7 @@ export async function getGalleryData(queryValue, page = 1) {
     return response.data;
   } catch (error) {
     handleAxiosError(error);
+    return null; // щоб main.js міг коректно обробити помилку
   }
 }
 

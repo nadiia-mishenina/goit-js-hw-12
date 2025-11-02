@@ -55,12 +55,15 @@ function markupGallery(data) {
 }
 
 export function fetchLoader() {
-  gallery.insertAdjacentHTML(
-    'beforeend',
-    `<div class='loader-wrapper'>
-        <div class='loader'></div>
-    </div>`
-  );
+  // Перевіряємо, чи вже є loader, щоб не дублювати
+  if (!document.querySelector('.loader-wrapper')) {
+    gallery.insertAdjacentHTML(
+      'beforeend',
+      `<div class="loader-wrapper">
+          <span class="loader"></span>
+       </div>`
+    );
+  }
 }
 
 export function removeLoader() {

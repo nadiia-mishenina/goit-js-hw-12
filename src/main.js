@@ -14,7 +14,7 @@ let evtType = '';
 
 const IMAGE_MAX_COUNT = 15;
 
-const form = document.querySelector('.search-form');
+const form = document.querySelector('.form'); // 🔹 змінили на '.form'
 const gallery = document.querySelector('.gallery');
 const loadMoreBtn = document.querySelector('.load-more-btn');
 
@@ -24,9 +24,17 @@ loadMoreBtn.addEventListener('click', async () => {
   try {
     evtType = EVENT_TYPE.click;
     await renderGallery(queryString, currentPage);
-    const liEl = document.querySelector('li');
-    const { height } = liEl.getBoundingClientRect();
-    scrollVertical(height * 2, 0);
+
+    // плавне скролювання після підвантаження
+    const firstCard = document.querySelector('.gallery li');
+    if (firstCard) {
+      const { height } = firstCard.getBoundingClientRect();
+      window.scrollBy({
+        top: height * 2,
+        left: 0,
+        behavior: 'smooth',
+      });
+    }
   } catch (error) {
     showInfoMessage(MESSAGES.exception + error, MESSAGES_BG_COLORS.orange);
   }
@@ -40,14 +48,12 @@ async function onSubmitForm(event) {
     const search = target.elements.search.value.trim();
 
     evtType = EVENT_TYPE.submit;
-
     loadMoreBtn.classList.remove('visible');
-
     iziToast.destroy();
 
     if (queryString !== search || evtType === EVENT_TYPE.submit) {
       gallery.innerHTML = '';
-      queryString = target.elements.search.value.trim();
+      queryString = search;
       currentPage = 1;
     }
 
@@ -69,7 +75,7 @@ async function renderGallery(searchValue, page) {
   try {
     if (searchValue === queryString && evtType === EVENT_TYPE.click) {
       currentPage += 1;
-      page += 1;
+      page = currentPage;
     }
 
     const galleryData = await getGalleryData(searchValue, page);
@@ -77,7 +83,7 @@ async function renderGallery(searchValue, page) {
     removeLoader();
 
     if (validateGalleryData(galleryData)) {
-      const restOfImages = Math.round(galleryData.totalHits / page);
+      const restOfImages = galleryData.totalHits - (page - 1) * IMAGE_MAX_COUNT;
       fetchGallery(galleryData);
       showHideBtn(restOfImages);
     }
@@ -92,14 +98,14 @@ function scrollVertical(x = 0, y = 0) {
 
 function removeLoader() {
   const loaderWrapper = document.querySelector('.loader-wrapper');
-  loaderWrapper.remove();
+  if (loaderWrapper) loaderWrapper.remove(); // 🔹 перевірка на null
 }
 
 function validateGalleryData(galleryData) {
   if (!galleryData) {
     gallery.innerHTML = '';
     return false;
-  } else if (galleryData && galleryData.totalHits === 0) {
+  } else if (galleryData.totalHits === 0) {
     showInfoMessage(MESSAGES.warning, MESSAGES_BG_COLORS.red);
     gallery.innerHTML = '';
     return false;
@@ -112,7 +118,7 @@ function showHideBtn(imagesCount) {
   if (imagesCount <= IMAGE_MAX_COUNT) {
     loadMoreBtn.classList.remove('visible');
     showInfoMessage(MESSAGES.endOfSearch, MESSAGES_BG_COLORS.blue);
-    return;
+  } else {
+    loadMoreBtn.classList.add('visible');
   }
-  loadMoreBtn.classList.add('visible');
 }
