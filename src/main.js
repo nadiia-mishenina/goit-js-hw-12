@@ -14,36 +14,38 @@ let evtType = '';
 
 const IMAGE_MAX_COUNT = 15;
 
-const form = document.querySelector('.form'); // 🔹 змінили на '.form'
+const form = document.querySelector('.form');
 const gallery = document.querySelector('.gallery');
 const loadMoreBtn = document.querySelector('.load-more-btn');
+const loaderWrapper = document.querySelector('.loader-wrapper');
 
 form.addEventListener('submit', onSubmitForm);
+loadMoreBtn.addEventListener('click', onLoadMoreClick);
 
-loadMoreBtn.addEventListener('click', async () => {
+async function onLoadMoreClick() {
   try {
     evtType = EVENT_TYPE.click;
     await renderGallery(queryString, currentPage);
 
-    // плавне скролювання після підвантаження
-    const firstCard = document.querySelector('.gallery li');
-    if (firstCard) {
-      const { height } = firstCard.getBoundingClientRect();
-      window.scrollBy({
-        top: height * 2,
-        left: 0,
-        behavior: 'smooth',
-      });
+    if (currentPage > 1) {
+      const firstCard = document.querySelector('.gallery li');
+      if (firstCard) {
+        const { height } = firstCard.getBoundingClientRect();
+        window.scrollBy({
+          top: height * 2,
+          left: 0,
+          behavior: 'smooth',
+        });
+      }
     }
   } catch (error) {
     showInfoMessage(MESSAGES.exception + error, MESSAGES_BG_COLORS.orange);
   }
-});
+}
 
 async function onSubmitForm(event) {
   try {
     event.preventDefault();
-
     const target = event.target;
     const search = target.elements.search.value.trim();
 
@@ -51,7 +53,7 @@ async function onSubmitForm(event) {
     loadMoreBtn.classList.remove('visible');
     iziToast.destroy();
 
-    if (queryString !== search || evtType === EVENT_TYPE.submit) {
+    if (queryString !== search) {
       gallery.innerHTML = '';
       queryString = search;
       currentPage = 1;
@@ -64,14 +66,23 @@ async function onSubmitForm(event) {
     }
 
     await renderGallery(queryString, currentPage);
-
     target.reset();
   } catch (error) {
     showInfoMessage(MESSAGES.exception + error, MESSAGES_BG_COLORS.orange);
   }
 }
 
+function showLoader() {
+  if (loaderWrapper) loaderWrapper.style.display = 'flex';
+}
+
+function hideLoader() {
+  if (loaderWrapper) loaderWrapper.style.display = 'none';
+}
+
 async function renderGallery(searchValue, page) {
+  showLoader();
+
   try {
     if (searchValue === queryString && evtType === EVENT_TYPE.click) {
       currentPage += 1;
@@ -80,8 +91,6 @@ async function renderGallery(searchValue, page) {
 
     const galleryData = await getGalleryData(searchValue, page);
 
-    removeLoader();
-
     if (validateGalleryData(galleryData)) {
       const restOfImages = galleryData.totalHits - (page - 1) * IMAGE_MAX_COUNT;
       fetchGallery(galleryData);
@@ -89,16 +98,9 @@ async function renderGallery(searchValue, page) {
     }
   } catch (error) {
     showInfoMessage(MESSAGES.exception + error, MESSAGES_BG_COLORS.orange);
+  } finally {
+    hideLoader();
   }
-}
-
-function scrollVertical(x = 0, y = 0) {
-  window.scrollBy({ top: x, left: y, behavior: 'smooth' });
-}
-
-function removeLoader() {
-  const loaderWrapper = document.querySelector('.loader-wrapper');
-  if (loaderWrapper) loaderWrapper.remove(); // 🔹 перевірка на null
 }
 
 function validateGalleryData(galleryData) {
@@ -109,9 +111,8 @@ function validateGalleryData(galleryData) {
     showInfoMessage(MESSAGES.warning, MESSAGES_BG_COLORS.red);
     gallery.innerHTML = '';
     return false;
-  } else {
-    return true;
   }
+  return true;
 }
 
 function showHideBtn(imagesCount) {
